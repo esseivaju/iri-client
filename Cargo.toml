@@ -1,0 +1,43 @@
+[package]
+name = "iri-client"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+description = "Rust client and Python bindings for the NERSC IRI API"
+readme = "README.md"
+license = "BSD-3-Clause"
+documentation = "https://docs.rs/iri-client"
+homepage = "https://api.iri.nersc.gov"
+keywords = ["api", "openapi", "client", "nersc", "python"]
+
+[lib]
+name = "iri_client"
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { version = "0.28.2", optional = true, features = ["abi3-py39"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+url = "2"
+
+[build-dependencies]
+serde_json = "1"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Pragmatic allowances for API/client crates.
+cargo_common_metadata = "allow"
+multiple_crate_versions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"

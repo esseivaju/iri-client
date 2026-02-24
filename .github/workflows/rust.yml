@@ -16,10 +16,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose --features python
+    - uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Build CLI
-      run: cargo build --verbose --features cli --bin iri-cli
+      run: cargo build --verbose --features python,cli --bin iri-cli
     - name: Check examples
       run: cargo check --verbose --examples
     - name: Run tests

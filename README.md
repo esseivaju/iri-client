@@ -40,6 +40,31 @@ IRI_ACCESS_TOKEN=<access-token> cargo run --example async_get_projects
 cargo run --example async_api_client_sites
 ```
 
+## CLI Tool (Async)
+
+A small async CLI binary is included at `src/bin/iri-cli.rs`.
+
+```bash
+# Show generated operations
+cargo run --features cli --bin iri-cli -- operations
+
+# Filter operation ids
+cargo run --features cli --bin iri-cli -- operations --filter Job
+
+# Call by OpenAPI operation id with query params
+cargo run --features cli --bin iri-cli -- call getResources --query limit=5 --query offset=0
+
+# Call operation with path params
+cargo run --features cli --bin iri-cli -- call getSite --path-param site_id=<site-id>
+
+# Raw method/path request
+cargo run --features cli --bin iri-cli -- request GET /api/v1/facility/sites --query limit=5
+
+# Authenticated operation
+IRI_ACCESS_TOKEN=<access-token> \
+  cargo run --features cli --bin iri-cli -- call getProjects
+```
+
 ## Rust Examples (OpenAPI Operation Client)
 
 Use `IriClient` when calling by OpenAPI `operationId`.

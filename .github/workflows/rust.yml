@@ -18,6 +18,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose --features python
+    - name: Build CLI
+      run: cargo build --verbose --features cli --bin iri-cli
     - name: Check examples
       run: cargo check --verbose --examples
     - name: Run tests

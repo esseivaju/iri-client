@@ -16,21 +16,29 @@ crate-type = ["rlib", "cdylib"]
 
 [features]
 default = []
+cli = ["dep:clap", "dep:tokio"]
 python = ["dep:pyo3"]
 
 [dependencies]
+clap = { version = "4.5", optional = true, features = ["derive", "env"] }
 pyo3 = { version = "0.28.2", optional = true, features = ["abi3-py39"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+tokio = { version = "1", optional = true, default-features = false, features = ["macros", "rt-multi-thread"] }
 url = "2"
 
 [build-dependencies]
 serde_json = "1"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
+
+[[bin]]
+name = "iri-cli"
+path = "src/bin/iri-cli.rs"
+required-features = ["cli"]
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

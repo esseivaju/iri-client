@@ -1,8 +1,8 @@
 use std::fs;
-use std::io::{Error as IoError, ErrorKind};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
 use iri_client::IriClient;
 use reqwest::Method;
@@ -94,7 +94,7 @@ struct BodyInput {
 /// Parses command-line arguments, builds an authenticated/unauthenticated client,
 /// dispatches subcommands, and prints JSON output.
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // `operations` is metadata-only; it does not require constructing an HTTP client.
@@ -104,8 +104,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let mut client = match &cli.base_url {
-        Some(url) => IriClient::new(url)?,
-        None => IriClient::from_openapi_default_server()?,
+        Some(url) => IriClient::new(url)
+            .with_context(|| format!("failed to create client with base URL '{url}'"))?,
+        None => IriClient::from_openapi_default_server()
+            .context("failed to create client from OpenAPI default server URL")?,
     };
 
     if let Some(token) = &cli.access_token {
@@ -113,12 +115,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let output = match &cli.command {
-        Command::Operations{ .. } => unreachable!("handled above"),
-        Command::Call(args) => call_operation(&client, args).await?,
-        Command::Request(args) => send_request(&client, args).await?,
+        Command::Operations { .. } => unreachable!("handled above"),
+        Command::Call(args) => call_operation(&client, args)
+            .await
+            .with_context(|| format!("operation call failed: '{}'", args.operation_id))?,
+        Command::Request(args) => send_request(&client, args)
+            .await
+            .with_context(|| format!("request failed: {} {}", args.method, args.path))?,
     };
 
-    print_json(&output, cli.compact)?;
+    print_json(&output, cli.compact).context("failed to print JSON output")?;
     Ok(())
 }
 
@@ -143,15 +149,13 @@ fn print_operations(filter: Option<&str>) {
 ///
 /// Parses path/query pairs and optional JSON body from CLI args, then forwards
 /// the request to `IriClient::call_operation`.
-async fn call_operation(
-    client: &IriClient,
-    args: &CallArgs,
-) -> Result<Value, Box<dyn std::error::Error>> {
+async fn call_operation(client: &IriClient, args: &CallArgs) -> Result<Value> {
     // Parse repeatable `key=value` args into owned pairs first, then borrow as `&str`
     // for the client call to avoid temporary lifetime issues.
-    let path_params = parse_pairs(&args.path_param, "--path-param")?;
-    let query = parse_pairs(&args.query, "--query")?;
-    let body = parse_body(&args.body)?;
+    let path_params = parse_pairs(&args.path_param, "--path-param")
+        .context("failed to parse --path-param arguments")?;
+    let query = parse_pairs(&args.query, "--query").context("failed to parse --query arguments")?;
+    let body = parse_body(&args.body).context("failed to parse request body input")?;
 
     let borrowed_path: Vec<(&str, &str)> = path_params
         .iter()
@@ -164,7 +168,13 @@ async fn call_operation(
 
     let value = client
         .call_operation(&args.operation_id, &borrowed_path, &borrowed_query, body)
-        .await?;
+        .await
+        .with_context(|| {
+            format!(
+                "OpenAPI operation '{}' returned an error",
+                args.operation_id
+            )
+        })?;
     Ok(value)
 }
 
@@ -172,19 +182,12 @@ async fn call_operation(
 ///
 /// This bypasses operation-id lookup and calls
 /// `IriClient::request_json_with_query` directly.
-async fn send_request(
-    client: &IriClient,
-    args: &RequestArgs,
-) -> Result<Value, Box<dyn std::error::Error>> {
+async fn send_request(client: &IriClient, args: &RequestArgs) -> Result<Value> {
     // Validate method eagerly so CLI errors are explicit before any network call.
-    let method = Method::from_str(&args.method).map_err(|e| {
-        IoError::new(
-            ErrorKind::InvalidInput,
-            format!("invalid HTTP method '{}': {e}", args.method),
-        )
-    })?;
-    let query = parse_pairs(&args.query, "--query")?;
-    let body = parse_body(&args.body)?;
+    let method = Method::from_str(&args.method)
+        .with_context(|| format!("invalid HTTP method '{}'", args.method))?;
+    let query = parse_pairs(&args.query, "--query").context("failed to parse --query arguments")?;
+    let body = parse_body(&args.body).context("failed to parse request body input")?;
     let borrowed_query: Vec<(&str, &str)> = query
         .iter()
         .map(|(key, value)| (key.as_str(), value.as_str()))
@@ -192,32 +195,23 @@ async fn send_request(
 
     let value = client
         .request_json_with_query(method, &args.path, &borrowed_query, body)
-        .await?;
+        .await
+        .with_context(|| format!("HTTP request failed for path '{}'", args.path))?;
     Ok(value)
 }
 
 /// Parses repeated `key=value` arguments into owned key/value pairs.
 ///
 /// Returns an error when a value does not include `=` or has an empty key.
-fn parse_pairs(
-    values: &[String],
-    flag_name: &str,
-) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
+fn parse_pairs(values: &[String], flag_name: &str) -> Result<Vec<(String, String)>> {
     // Shared parser for `--query` and `--path-param` arguments.
     let mut pairs = Vec::with_capacity(values.len());
     for item in values {
-        let (key, value) = item.split_once('=').ok_or_else(|| {
-            IoError::new(
-                ErrorKind::InvalidInput,
-                format!("invalid {flag_name} value '{item}': expected key=value"),
-            )
-        })?;
+        let Some((key, value)) = item.split_once('=') else {
+            bail!("invalid {flag_name} value '{item}': expected key=value");
+        };
         if key.is_empty() {
-            return Err(IoError::new(
-                ErrorKind::InvalidInput,
-                format!("invalid {flag_name} value '{item}': empty key"),
-            )
-            .into());
+            bail!("invalid {flag_name} value '{item}': empty key");
         }
         pairs.push((key.to_owned(), value.to_owned()));
     }
@@ -227,31 +221,40 @@ fn parse_pairs(
 /// Parses an optional JSON body from inline text or a file path.
 ///
 /// Exactly one of `--body-json` or `--body-file` may be set.
-fn parse_body(body: &BodyInput) -> Result<Option<Value>, Box<dyn std::error::Error>> {
+fn parse_body(body: &BodyInput) -> Result<Option<Value>> {
     match (&body.body_json, &body.body_file) {
         // Inline JSON body for quick ad-hoc calls.
-        (Some(raw), None) => Ok(Some(serde_json::from_str(raw)?)),
+        (Some(raw), None) => serde_json::from_str(raw)
+            .context("failed to parse JSON from --body-json")
+            .map(Some),
         (None, Some(path)) => {
             // File-based body for larger payloads and reusable fixtures.
-            let raw = fs::read_to_string(path)?;
-            Ok(Some(serde_json::from_str(&raw)?))
+            let raw = fs::read_to_string(path)
+                .with_context(|| format!("failed to read --body-file '{}'", path.display()))?;
+            serde_json::from_str(&raw)
+                .with_context(|| {
+                    format!("failed to parse JSON in --body-file '{}'", path.display())
+                })
+                .map(Some)
         }
         (None, None) => Ok(None),
-        (Some(_), Some(_)) => Err(IoError::new(
-            ErrorKind::InvalidInput,
-            "use only one of --body-json or --body-file",
-        )
-        .into()),
+        (Some(_), Some(_)) => bail!("use only one of --body-json or --body-file"),
     }
 }
 
 /// Prints a JSON value either compact or pretty-formatted.
-fn print_json(value: &Value, compact: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn print_json(value: &Value, compact: bool) -> Result<()> {
     // Keep output machine-friendly by defaulting to valid JSON in both modes.
     if compact {
-        println!("{}", serde_json::to_string(value)?);
+        println!(
+            "{}",
+            serde_json::to_string(value).context("Failed to render JSON")?
+        );
     } else {
-        println!("{}", serde_json::to_string_pretty(value)?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(value).context("Failed to render JSON")?
+        );
     }
     Ok(())
 }

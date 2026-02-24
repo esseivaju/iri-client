@@ -19,10 +19,11 @@ crate-type = ["rlib", "cdylib"]
 
 [features]
 default = []
-cli = ["dep:clap", "dep:tokio"]
+cli = ["dep:anyhow", "dep:clap", "dep:tokio"]
 python = ["dep:pyo3"]
 
 [dependencies]
+anyhow = { version = "1", optional = true }
 clap = { version = "4.5", optional = true, features = ["derive", "env"] }
 pyo3 = { version = "0.28.2", optional = true, features = ["abi3-py39"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls"] }

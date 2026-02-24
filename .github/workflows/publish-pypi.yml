@@ -165,7 +165,7 @@ jobs:
         with:
           maturin-version: v1.12.4
           command: sdist
-          args: --locked --compatibility pypi --out dist
+          args: --out dist
       - name: Upload sdist
         uses: actions/upload-artifact@v5
         with:

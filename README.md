@@ -14,6 +14,32 @@ Authorization: <access_token>
 This client follows that behavior when you call `with_authorization_token(...)`
 or pass `access_token=...` in Python.
 
+## Runnable Cargo Examples
+
+These are checked-in Rust examples you can run directly:
+
+```bash
+# Lists generated operation ids/methods/paths (no network calls)
+cargo run --example blocking_list_operations
+
+# Calls getResources with query parameters
+cargo run --example blocking_get_resources
+
+# Same example with custom base URL and limit
+IRI_BASE_URL=https://api.iri.nersc.gov IRI_RESOURCE_LIMIT=10 \
+  cargo run --example blocking_get_resources
+
+# Calls auth-required getProjects
+IRI_ACCESS_TOKEN=<access-token> cargo run --example blocking_get_projects
+
+# Async IriClient examples
+cargo run --example async_get_resources
+IRI_ACCESS_TOKEN=<access-token> cargo run --example async_get_projects
+
+# Async ApiClient example (raw path + query)
+cargo run --example async_api_client_sites
+```
+
 ## Rust Examples (OpenAPI Operation Client)
 
 Use `IriClient` when calling by OpenAPI `operationId`.

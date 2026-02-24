@@ -1,6 +1,7 @@
 [package]
 name = "iri-client"
 version = "0.1.0"
+authors = ["Julien Esseiva <jesseiva@lbl.gov>"]
 edition = "2024"
 build = "build.rs"
 description = "Rust client and Python bindings for the NERSC IRI API"
@@ -8,7 +9,9 @@ readme = "README.md"
 license = "BSD-3-Clause"
 documentation = "https://docs.rs/iri-client"
 homepage = "https://api.iri.nersc.gov"
+repository = "https://github.com/esseivaju/iri-client"
 keywords = ["api", "openapi", "client", "nersc", "python"]
+categories = ["command-line-utilities", "web-programming::http-client"]
 
 [lib]
 name = "iri_client"

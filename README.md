@@ -170,6 +170,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Python Bindings
 
+Install from PyPI:
+
+```bash
+pip install iri-client
+```
+
 Build the extension module locally:
 
 ```bash

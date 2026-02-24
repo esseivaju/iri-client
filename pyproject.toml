@@ -4,11 +4,16 @@ build-backend = "maturin"
 
 [project]
 name = "iri-client"
-version = "0.1.0"
-description = "Python bindings for iri-client"
+dynamic = [
+    "version",
+    "readme",
+    "license",
+    "keywords",
+    "authors",
+    "urls",
+    "description"
+]
 requires-python = ">=3.9"
-readme = "README.md"
-license = "BSD-3-Clause"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Rust",
@@ -16,10 +21,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-[project.urls]
-Homepage = "https://api.iri.nersc.gov"
-Documentation = "https://docs.rs/iri-client"
-
 [tool.maturin]
 features = ["python"]
 module-name = "iri_client"
+bindings = "pyo3"

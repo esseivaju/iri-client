@@ -132,9 +132,11 @@ async fn main() -> Result<()> {
 ///
 /// When `filter` is provided, only operation ids containing that substring are shown.
 fn print_operations(filter: Option<&str>) {
+    let filter = filter.map(str::to_ascii_lowercase);
+
     for operation in IriClient::operations() {
-        if let Some(needle) = filter
-            && !operation.operation_id.contains(needle)
+        if let Some(needle) = &filter
+            && !operation.operation_id.to_ascii_lowercase().contains(needle)
         {
             continue;
         }

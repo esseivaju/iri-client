@@ -114,22 +114,11 @@ iri-cli operations --filter Job
 # Call by OpenAPI operation id with query params
 iri-cli call getResources --query group=perlmutter --query resource_type=compute
 
-# Equivalent query map via JSON
-iri-cli call getResources --query-json '{"group":"perlmutter","resource_type":"compute"}'
-
 # Call operation with path params
 iri-cli call getSite --path-param site_id=<site-id>
 
-# Path params from JSON file
-iri-cli call getSite --path-file ./site_params.json
-
 # Raw method/path request
 iri-cli request GET /api/v1/facility/sites --query limit=5
-
-# Raw request with query params file and body file
-iri-cli request POST /api/v1/files/copy \
-  --query-file ./query.json \
-  --body-file ./payload.json
 
 # Authenticated operation
 IRI_ACCESS_TOKEN=<access-token> \

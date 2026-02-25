@@ -1,7 +1,60 @@
 # iri-client
 
-Rust client + Python bindings for the NERSC IRI API, driven by the OpenAPI 3.1
+Rust client + Python bindings for the [NERSC IRI API](https://api.iri.nersc.gov) OpenAPI 3.1
 spec in `openapi/openapi.json`.
+
+## Python Bindings
+
+Install from PyPI:
+
+```bash
+pip install iri-client
+```
+
+or build the extension module locally:
+
+```bash
+# Use maturin >= 1.9.4
+maturin develop --features python
+```
+
+### Python operation examples
+
+```python
+import json
+from iri_client import Client
+
+client = Client(base_url="https://api.iri.nersc.gov")
+
+# List operation ids
+operation_ids = Client.operation_ids()
+print(f"Loaded {len(operation_ids)} operations from generated catalog")
+print("First 10 operation ids:")
+for operation_id in operation_ids[:10]:
+    print(f"  - {operation_id}")
+
+# Public operation
+print(client.call_operation("getFacility"))
+
+# Path params
+print(
+    client.call_operation(
+        "getSite",
+        path_params_json=json.dumps({"site_id": "dd7f822a-3ad2-54ae-bddb-796ee07bd206"}),
+    )
+)
+
+# Auth-required operation
+# access_token = "<token from OAuth2>"
+# auth_client = Client(base_url="https://api.iri.nersc.gov", access_token=access_token)
+# print(auth_client.call_operation("getProjects"))
+```
+
+Full runnable Python operation script:
+- `examples/python_module_example.py`
+
+OAuth2 token helper script (`authlib` + `PrivateKeyJWT`):
+- `examples/generate_auth_token.py`
 
 ## Authentication Model
 
@@ -12,7 +65,7 @@ Authorization: <access_token>
 ```
 
 This client follows that behavior when you call `with_authorization_token(...)`
-or pass `access_token=...` in Python.
+or pass `access_token=...` to the client's constructor in Python.
 
 ## Runnable Cargo Examples
 
@@ -40,29 +93,47 @@ IRI_ACCESS_TOKEN=<access-token> cargo run --example async_get_projects
 cargo run --example async_api_client_sites
 ```
 
-## CLI Tool (Async)
+## CLI Tool
 
-A small async CLI binary is included at `src/bin/iri-cli.rs`.
+A small CLI binary `iri-cli` is included. One can install it through `cargo`. It is
+currently not distributed in the python package.
+
+```bash
+cargo install iri-client --features cli
+```
+
+Here are a few examples on how to use the cli client.
 
 ```bash
 # Show generated operations
-cargo run --features cli --bin iri-cli -- operations
+iri-cli operations
 
 # Filter operation ids
-cargo run --features cli --bin iri-cli -- operations --filter Job
+iri-cli operations --filter Job
 
 # Call by OpenAPI operation id with query params
-cargo run --features cli --bin iri-cli -- call getResources --query limit=5 --query offset=0
+iri-cli call getResources --query group=perlmutter --query resource_type=compute
+
+# Equivalent query map via JSON
+iri-cli call getResources --query-json '{"group":"perlmutter","resource_type":"compute"}'
 
 # Call operation with path params
-cargo run --features cli --bin iri-cli -- call getSite --path-param site_id=<site-id>
+iri-cli call getSite --path-param site_id=<site-id>
+
+# Path params from JSON file
+iri-cli call getSite --path-file ./site_params.json
 
 # Raw method/path request
-cargo run --features cli --bin iri-cli -- request GET /api/v1/facility/sites --query limit=5
+iri-cli request GET /api/v1/facility/sites --query limit=5
+
+# Raw request with query params file and body file
+iri-cli request POST /api/v1/files/copy \
+  --query-file ./query.json \
+  --body-file ./payload.json
 
 # Authenticated operation
 IRI_ACCESS_TOKEN=<access-token> \
-  cargo run --features cli --bin iri-cli -- call getProjects
+  iri-cli call getProjects
 ```
 
 ## Rust Examples (OpenAPI Operation Client)
@@ -167,56 +238,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
-
-## Python Bindings
-
-Install from PyPI:
-
-```bash
-pip install iri-client
-```
-
-Build the extension module locally:
-
-```bash
-# Use maturin >= 1.9.4
-maturin develop --features python
-```
-
-### Python operation examples
-
-```python
-import json
-from iri_client import Client
-
-client = Client(base_url="https://api.iri.nersc.gov")
-
-# List operation ids
-operation_ids = Client.operation_ids()
-print(f"Loaded {len(operation_ids)} operations from generated catalog")
-print("First 10 operation ids:")
-for operation_id in operation_ids[:10]:
-    print(f"  - {operation_id}")
-
-# Public operation
-print(client.call_operation("getFacility"))
-
-# Path params
-print(
-    client.call_operation(
-        "getSite",
-        path_params_json=json.dumps({"site_id": "dd7f822a-3ad2-54ae-bddb-796ee07bd206"}),
-    )
-)
-
-# Auth-required operation
-# access_token = "<token from OAuth2>"
-# auth_client = Client(base_url="https://api.iri.nersc.gov", access_token=access_token)
-# print(auth_client.call_operation("getProjects"))
-```
-
-Full runnable Python operation script:
-- `examples/python_module_example.py`
-
-OAuth2 token helper script (`authlib` + `PrivateKeyJWT`):
-- `examples/generate_auth_token.py`

@@ -8,6 +8,14 @@ use serde_json::Value;
 
 use crate::BlockingIriClient;
 
+#[pyclass(name = "OperationDefinition", get_all)]
+pub struct PyOperationDefinition {
+    pub operation_id: String,
+    pub method: String,
+    pub path_template: String,
+    pub path_params: Vec<String>,
+}
+
 #[pyclass(name = "Client")]
 pub struct PyClient {
     inner: Mutex<BlockingIriClient>,
@@ -34,10 +42,19 @@ impl PyClient {
     }
 
     #[staticmethod]
-    fn operation_ids() -> Vec<String> {
+    fn operations() -> Vec<PyOperationDefinition> {
         BlockingIriClient::operations()
             .iter()
-            .map(|op| op.operation_id.to_owned())
+            .map(|op| PyOperationDefinition {
+                operation_id: op.operation_id.to_owned(),
+                method: op.method.to_owned(),
+                path_template: op.path_template.to_owned(),
+                path_params: op
+                    .path_params
+                    .iter()
+                    .map(|value| (*value).to_owned())
+                    .collect(),
+            })
             .collect()
     }
 
@@ -111,6 +128,7 @@ impl PyClient {
 
 #[pymodule]
 fn iri_client(_py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add_class::<PyOperationDefinition>()?;
     module.add_class::<PyClient>()?;
     Ok(())
 }

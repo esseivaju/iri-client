@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 
 from iri_client import Client
 
@@ -66,11 +65,14 @@ def main() -> int:
     # If base_url is None, the client uses the OpenAPI default server URL.
     client = Client(base_url=base_url, access_token=access_token)
 
-    operation_ids = Client.operation_ids()
-    print(f"Loaded {len(operation_ids)} operations from generated catalog")
-    print("First 10 operation ids:")
-    for operation_id in operation_ids[:10]:
-        print(f"  - {operation_id}")
+    operations = Client.operations()
+    print(f"Loaded {len(operations)} operations from generated catalog")
+    print("First 10 operations:")
+    for operation in operations[:10]:
+        print(
+            f"  - {operation.operation_id} "
+            f"({operation.method} {operation.path_template})"
+        )
 
     # Operation with no path/query/body parameters.
     call_and_print(client, "Facility (getFacility)", "getFacility")

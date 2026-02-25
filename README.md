@@ -27,11 +27,11 @@ from iri_client import Client
 client = Client(base_url="https://api.iri.nersc.gov")
 
 # List operation ids
-operation_ids = Client.operation_ids()
-print(f"Loaded {len(operation_ids)} operations from generated catalog")
-print("First 10 operation ids:")
-for operation_id in operation_ids[:10]:
-    print(f"  - {operation_id}")
+operations = Client.operations()
+print(f"Loaded {len(operations)} operations from generated catalog")
+print("First 10 operations:")
+for operation in operations[:10]:
+    print(f"  - {operation.operation_id} ({operation.method} {operation.path_template})")
 
 # Public operation
 print(client.call_operation("getFacility"))

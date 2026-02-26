@@ -52,19 +52,19 @@ impl PyClient {
         operations_for_python()
     }
 
-    fn get(&self, path: String) -> PyResult<String> {
-        self.request("GET".to_owned(), path, None, None)
+    fn get(&self, path: &str) -> PyResult<String> {
+        self.request("GET", path, None, None)
     }
 
     #[pyo3(signature = (method, path, query_json=None, body_json=None))]
     fn request(
         &self,
-        method: String,
-        path: String,
+        method: &str,
+        path: &str,
         query_json: Option<String>,
         body_json: Option<String>,
     ) -> PyResult<String> {
-        let parsed_method = Method::from_str(&method)
+        let parsed_method = Method::from_str(method)
             .map_err(|e| PyValueError::new_err(format!("invalid HTTP method: {e}")))?;
         let query_pairs = parse_map_arg(query_json)?;
         let borrowed_query: Vec<(&str, &str)> = query_pairs
@@ -80,7 +80,7 @@ impl PyClient {
             .lock()
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         let value = client
-            .request_json_with_query(parsed_method, &path, &borrowed_query, body)
+            .request_json_with_query(parsed_method, path, &borrowed_query, body)
             .map_err(to_py_runtime_error)?;
 
         Ok(value.to_string())
@@ -89,7 +89,7 @@ impl PyClient {
     #[pyo3(signature = (operation_id, path_params_json=None, query_json=None, body_json=None))]
     fn call_operation(
         &self,
-        operation_id: String,
+        operation_id: &str,
         path_params_json: Option<String>,
         query_json: Option<String>,
         body_json: Option<String>,
@@ -113,7 +113,7 @@ impl PyClient {
             .lock()
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         let value = client
-            .call_operation(&operation_id, &borrowed_path, &borrowed_query, body)
+            .call_operation(operation_id, &borrowed_path, &borrowed_query, body)
             .map_err(to_py_runtime_error)?;
 
         Ok(value.to_string())
@@ -144,19 +144,19 @@ impl PyAsyncClient {
     }
 
     fn get<'py>(&self, py: Python<'py>, path: String) -> PyResult<Bound<'py, PyAny>> {
-        self.request(py, "GET".to_owned(), path, None, None)
+        self.request(py, "GET", path, None, None)
     }
 
     #[pyo3(signature = (method, path, query_json=None, body_json=None))]
     fn request<'py>(
         &self,
         py: Python<'py>,
-        method: String,
+        method: &str,
         path: String,
         query_json: Option<String>,
         body_json: Option<String>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let parsed_method = Method::from_str(&method)
+        let parsed_method = Method::from_str(method)
             .map_err(|e| PyValueError::new_err(format!("invalid HTTP method: {e}")))?;
         let query_pairs = parse_map_arg(query_json)?;
         let body = parse_body_arg(body_json)?;

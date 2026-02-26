@@ -15,7 +15,7 @@ use serde_json::Value;
     about = "Small async CLI for querying the IRI API"
 )]
 struct Cli {
-    /// Base URL for the API. Defaults to OpenAPI server URL.
+    /// Base URL for the API. Defaults to `OpenAPI` server URL.
     #[arg(long, env = "IRI_BASE_URL")]
     base_url: Option<String>,
 
@@ -33,13 +33,13 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// List generated OpenAPI operation ids.
+    /// List generated `OpenAPI` operation ids.
     Operations {
         /// Filter operations by substring match on operation id (case-sensitive).
         #[arg(long)]
         filter: Option<String>,
     },
-    /// Call an endpoint by OpenAPI operation id.
+    /// Call an endpoint by `OpenAPI` operation id.
     Call(CallArgs),
     /// Send a raw HTTP request using method + path.
     Request(RequestArgs),
@@ -47,7 +47,7 @@ enum Command {
 
 #[derive(Debug, Args)]
 struct CallArgs {
-    /// OpenAPI operation id (for example: getResources).
+    /// `OpenAPI` operation id (for example: getResources).
     operation_id: String,
 
     /// Path parameter in form key=value. Repeat as needed.
@@ -128,7 +128,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-/// Prints the generated OpenAPI operation catalog.
+/// Prints the generated `OpenAPI` operation catalog.
 ///
 /// When `filter` is provided, only operation ids containing that substring are shown.
 fn print_operations(filter: Option<&str>) {
@@ -161,7 +161,7 @@ fn print_operations(filter: Option<&str>) {
     }
 }
 
-/// Calls a generated OpenAPI operation by `operation_id`.
+/// Calls a generated `OpenAPI` operation by `operation_id`.
 ///
 /// Parses path/query pairs and optional JSON body from CLI args, then forwards
 /// the request to `IriClient::call_operation`.

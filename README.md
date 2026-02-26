@@ -52,9 +52,9 @@ print(
 
 Full runnable Python operation script:
 - `examples/python_module_example.py`
+- `examples/python_async_module_example.py` (async with `AsyncClient`)
+- `examples/submit_job.py` (submit a job to IRI api and monitor status)
 
-OAuth2 token helper script (`authlib` + `PrivateKeyJWT`):
-- `examples/generate_auth_token.py`
 
 ## Authentication Model
 

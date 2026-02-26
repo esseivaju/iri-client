@@ -3,10 +3,11 @@ use std::sync::Mutex;
 
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::future_into_py;
 use reqwest::Method;
 use serde_json::Value;
 
-use crate::BlockingIriClient;
+use crate::{BlockingIriClient, IriClient};
 
 #[pyclass(name = "OperationDefinition", get_all)]
 pub struct PyOperationDefinition {
@@ -19,6 +20,11 @@ pub struct PyOperationDefinition {
 #[pyclass(name = "Client")]
 pub struct PyClient {
     inner: Mutex<BlockingIriClient>,
+}
+
+#[pyclass(name = "AsyncClient")]
+pub struct PyAsyncClient {
+    inner: IriClient,
 }
 
 #[pymethods]
@@ -43,19 +49,7 @@ impl PyClient {
 
     #[staticmethod]
     fn operations() -> Vec<PyOperationDefinition> {
-        BlockingIriClient::operations()
-            .iter()
-            .map(|op| PyOperationDefinition {
-                operation_id: op.operation_id.to_owned(),
-                method: op.method.to_owned(),
-                path_template: op.path_template.to_owned(),
-                path_params: op
-                    .path_params
-                    .iter()
-                    .map(|value| (*value).to_owned())
-                    .collect(),
-            })
-            .collect()
+        operations_for_python()
     }
 
     fn get(&self, path: String) -> PyResult<String> {
@@ -126,10 +120,98 @@ impl PyClient {
     }
 }
 
+#[pymethods]
+impl PyAsyncClient {
+    #[new]
+    #[pyo3(signature = (base_url=None, access_token=None))]
+    fn new(base_url: Option<String>, access_token: Option<String>) -> PyResult<Self> {
+        let client = match base_url {
+            Some(url) => IriClient::new(url).map_err(to_py_value_error)?,
+            None => IriClient::from_openapi_default_server().map_err(to_py_value_error)?,
+        };
+        let client = if let Some(value) = access_token {
+            client.with_authorization_token(value)
+        } else {
+            client
+        };
+
+        Ok(Self { inner: client })
+    }
+
+    #[staticmethod]
+    fn operations() -> Vec<PyOperationDefinition> {
+        operations_for_python()
+    }
+
+    fn get<'py>(&self, py: Python<'py>, path: String) -> PyResult<Bound<'py, PyAny>> {
+        self.request(py, "GET".to_owned(), path, None, None)
+    }
+
+    #[pyo3(signature = (method, path, query_json=None, body_json=None))]
+    fn request<'py>(
+        &self,
+        py: Python<'py>,
+        method: String,
+        path: String,
+        query_json: Option<String>,
+        body_json: Option<String>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let parsed_method = Method::from_str(&method)
+            .map_err(|e| PyValueError::new_err(format!("invalid HTTP method: {e}")))?;
+        let query_pairs = parse_map_arg(query_json)?;
+        let body = parse_body_arg(body_json)?;
+        let client = self.inner.clone();
+
+        future_into_py(py, async move {
+            let borrowed_query: Vec<(&str, &str)> = query_pairs
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str()))
+                .collect();
+            let value = client
+                .request_json_with_query(parsed_method, &path, &borrowed_query, body)
+                .await
+                .map_err(to_py_runtime_error)?;
+            Ok(value.to_string())
+        })
+    }
+
+    #[pyo3(signature = (operation_id, path_params_json=None, query_json=None, body_json=None))]
+    fn call_operation<'py>(
+        &self,
+        py: Python<'py>,
+        operation_id: String,
+        path_params_json: Option<String>,
+        query_json: Option<String>,
+        body_json: Option<String>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let path_pairs = parse_map_arg(path_params_json)?;
+        let query_pairs = parse_map_arg(query_json)?;
+        let body = parse_body_arg(body_json)?;
+        let client = self.inner.clone();
+
+        future_into_py(py, async move {
+            let borrowed_path: Vec<(&str, &str)> = path_pairs
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str()))
+                .collect();
+            let borrowed_query: Vec<(&str, &str)> = query_pairs
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str()))
+                .collect();
+            let value = client
+                .call_operation(&operation_id, &borrowed_path, &borrowed_query, body)
+                .await
+                .map_err(to_py_runtime_error)?;
+            Ok(value.to_string())
+        })
+    }
+}
+
 #[pymodule]
 fn iri_client(_py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyOperationDefinition>()?;
     module.add_class::<PyClient>()?;
+    module.add_class::<PyAsyncClient>()?;
     Ok(())
 }
 
@@ -139,6 +221,28 @@ fn to_py_value_error(error: impl std::fmt::Display) -> PyErr {
 
 fn to_py_runtime_error(error: impl std::fmt::Display) -> PyErr {
     PyRuntimeError::new_err(error.to_string())
+}
+
+fn operations_for_python() -> Vec<PyOperationDefinition> {
+    BlockingIriClient::operations()
+        .iter()
+        .map(|op| PyOperationDefinition {
+            operation_id: op.operation_id.to_owned(),
+            method: op.method.to_owned(),
+            path_template: op.path_template.to_owned(),
+            path_params: op
+                .path_params
+                .iter()
+                .map(|value| (*value).to_owned())
+                .collect(),
+        })
+        .collect()
+}
+
+fn parse_body_arg(raw_json: Option<String>) -> PyResult<Option<Value>> {
+    raw_json
+        .map(|raw| serde_json::from_str(&raw).map_err(to_py_value_error))
+        .transpose()
 }
 
 fn parse_map_arg(raw_json: Option<String>) -> PyResult<Vec<(String, String)>> {

@@ -20,12 +20,13 @@ crate-type = ["rlib", "cdylib"]
 [features]
 default = []
 cli = ["dep:anyhow", "dep:clap", "dep:tokio"]
-python = ["dep:pyo3"]
+python = ["dep:pyo3", "dep:pyo3-async-runtimes"]
 
 [dependencies]
 anyhow = { version = "1", optional = true }
 clap = { version = "4.5", optional = true, features = ["derive", "env"] }
-pyo3 = { version = "0.28.2", optional = true, features = ["abi3-py39"] }
+pyo3 = { version = "0.28.2", optional = true, features = ["abi3-py39", "extension-module"] }
+pyo3-async-runtimes = { version = "0.28.0", optional = true, features = ["tokio-runtime"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

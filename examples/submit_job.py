@@ -20,8 +20,8 @@ import time
 
 from iri_client import Client
 
-JOB_DIR='/pscratch/sd/e/<myuser>/iri-workdir'
-EXEC='/pscratch/sd/e/<myuser>/iri-workdir/dummy_job.sh'
+JOB_DIR='/path/to/iri-workdir'
+EXEC=f"{JOB_DIR}/dummy_job.sh"
 PROJECT='<mXXXX>'
 
 # directory, stdout_path, and stderr_path are not working and defaulting to home directory

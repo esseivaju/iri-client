@@ -134,14 +134,28 @@ async fn main() -> Result<()> {
 fn print_operations(filter: Option<&str>) {
     let filter = filter.map(str::to_ascii_lowercase);
 
-    for operation in IriClient::operations() {
-        if let Some(needle) = &filter
-            && !operation.operation_id.to_ascii_lowercase().contains(needle)
-        {
-            continue;
-        }
+    let operations: Vec<_> = IriClient::operations()
+        .iter()
+        .filter(|operation| {
+            filter
+                .as_ref()
+                .is_none_or(|needle| operation.operation_id.to_ascii_lowercase().contains(needle))
+        })
+        .collect();
+
+    let (operation_id_width, method_width) =
+        operations
+            .iter()
+            .fold((0usize, 0usize), |(id_max, method_max), operation| {
+                (
+                    id_max.max(operation.operation_id.len()),
+                    method_max.max(operation.method.len()),
+                )
+            });
+
+    for operation in operations {
         println!(
-            "{}\t{}\t{}",
+            "{:<operation_id_width$}  {:<method_width$}  {}",
             operation.operation_id, operation.method, operation.path_template
         );
     }

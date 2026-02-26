@@ -29,5 +29,7 @@ jobs:
       run: cargo build --verbose --features python,cli --bin iri-cli
     - name: Check examples
       run: cargo check --verbose --examples
+    - name: Run Lint
+      run: cargo clippy --features cli,python
     - name: Run tests
       run: cargo test --verbose

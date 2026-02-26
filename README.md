@@ -45,7 +45,7 @@ print(
 )
 
 # Auth-required operation
-# access_token = "<token from OAuth2>"
+# access_token = "<token from GlobusAuth>"
 # auth_client = Client(base_url="https://api.iri.nersc.gov", access_token=access_token)
 # print(auth_client.call_operation("getProjects"))
 ```

@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Create release tags for client and OpenAPI versions on HEAD.
+Create a single release tag that combines client and OpenAPI versions on HEAD.
 
 Usage:
   scripts/release-tag.sh [options]
@@ -17,8 +17,7 @@ Options:
   -h, --help                  Show this help.
 
 Tag format:
-  client tag: v<client-version>
-  api tag:    api/v<openapi-info.version>
+  v<client-version>-api-v<openapi-info.version>
 EOF
 }
 
@@ -141,41 +140,33 @@ if [[ -z "$api_version" ]]; then
   exit 1
 fi
 
-client_tag="v${client_version}"
-api_tag="api/v${api_version}"
+release_tag="v${client_version}-api-v${api_version}"
 head_sha="$(git rev-parse --verify HEAD)"
 
-for tag in "$client_tag" "$api_tag"; do
-  if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-    echo "error: tag already exists: ${tag}" >&2
-    exit 1
-  fi
-done
+if git rev-parse -q --verify "refs/tags/${release_tag}" >/dev/null; then
+  echo "error: tag already exists: ${release_tag}" >&2
+  exit 1
+fi
 
-client_msg="Client ${client_version}; OpenAPI ${api_version}"
-api_msg="OpenAPI ${api_version}; client ${client_version}"
+release_msg="Client ${client_version}; OpenAPI ${api_version}"
 
 echo "HEAD:       ${head_sha}"
-echo "client tag: ${client_tag}"
-echo "api tag:    ${api_tag}"
+echo "tag:        ${release_tag}"
 echo "spec:       ${openapi_file}"
 
 if $dry_run; then
   echo
   echo "Dry run. Commands:"
-  echo "  git tag -a \"${client_tag}\" -m \"${client_msg}\" \"${head_sha}\""
-  echo "  git tag -a \"${api_tag}\" -m \"${api_msg}\" \"${head_sha}\""
-  echo "  git push origin \"${client_tag}\" \"${api_tag}\""
+  echo "  git tag -a \"${release_tag}\" -m \"${release_msg}\" \"${head_sha}\""
+  echo "  git push origin \"${release_tag}\""
   exit 0
 fi
 
-git tag -a "${client_tag}" -m "${client_msg}" "${head_sha}"
-git tag -a "${api_tag}" -m "${api_msg}" "${head_sha}"
+git tag -a "${release_tag}" -m "${release_msg}" "${head_sha}"
 
 echo
-echo "Created tags on ${head_sha}:"
-echo "  ${client_tag}"
-echo "  ${api_tag}"
+echo "Created tag on ${head_sha}:"
+echo "  ${release_tag}"
 echo
 echo "Push when ready:"
-echo "  git push origin \"${client_tag}\" \"${api_tag}\""
+echo "  git push origin \"${release_tag}\""

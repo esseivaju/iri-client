@@ -85,7 +85,7 @@ impl BlockingApiClient {
         }
 
         if let Some(token) = &self.authorization_token {
-            request = request.header(reqwest::header::AUTHORIZATION, token);
+            request = request.bearer_auth(token);
         }
 
         if let Some(json_body) = body {

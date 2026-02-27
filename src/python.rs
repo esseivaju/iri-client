@@ -8,19 +8,34 @@ use serde_json::Value;
 
 use crate::{BlockingIriClient, IriClient};
 
+/// Metadata for one generated OpenAPI operation.
+///
+/// Returned by `Client.operations()` and `AsyncClient.operations()`.
 #[pyclass(name = "OperationDefinition", get_all)]
 pub struct PyOperationDefinition {
+    /// Stable OpenAPI operation identifier (for example, `"getFacility"`).
     pub operation_id: String,
+    /// Uppercase HTTP method (for example, `"GET"` or `"POST"`).
     pub method: String,
+    /// Path template which may contain `{param}` placeholders.
     pub path_template: String,
+    /// Required path-parameter names extracted from `path_template`.
     pub path_params: Vec<String>,
 }
 
+/// Synchronous Python client for the IRI API.
+///
+/// This class wraps the blocking Rust client and returns JSON payloads as
+/// strings.
 #[pyclass(name = "Client")]
 pub struct PyClient {
     inner: BlockingIriClient,
 }
 
+/// Asynchronous Python client for the IRI API.
+///
+/// Methods return awaitables using the Tokio runtime integration from
+/// `pyo3-async-runtimes`.
 #[pyclass(name = "AsyncClient")]
 pub struct PyAsyncClient {
     inner: IriClient,
@@ -28,6 +43,11 @@ pub struct PyAsyncClient {
 
 #[pymethods]
 impl PyClient {
+    /// Create a new synchronous client.
+    ///
+    /// Args:
+    ///     base_url: Base API URL. If omitted, uses the default server from the OpenAPI spec.
+    ///     access_token: Optional raw token sent as `Authorization: <token>`.
     #[new]
     #[pyo3(signature = (base_url=None, access_token=None))]
     fn new(base_url: Option<String>, access_token: Option<String>) -> PyResult<Self> {
@@ -41,20 +61,30 @@ impl PyClient {
             client
         };
 
-        Ok(Self {
-            inner: client,
-        })
+        Ok(Self { inner: client })
     }
 
+    /// Return all generated OpenAPI operation definitions.
     #[staticmethod]
     fn operations() -> Vec<PyOperationDefinition> {
         operations_for_python()
     }
 
+    /// Perform a `GET` request against a raw API path.
     fn get(&self, path: &str) -> PyResult<String> {
         self.request("GET", path, None, None)
     }
 
+    /// Perform a raw HTTP request by method and path.
+    ///
+    /// Args:
+    ///     method: HTTP method (for example, `"GET"`).
+    ///     path: API path relative to the configured base URL.
+    ///     query_json: Optional JSON object (string) used as query parameters.
+    ///     body_json: Optional JSON value (string) used as request body.
+    ///
+    /// Returns:
+    ///     A JSON string containing the parsed response payload.
     #[pyo3(signature = (method, path, query_json=None, body_json=None))]
     fn request(
         &self,
@@ -74,13 +104,24 @@ impl PyClient {
             .map(|raw| serde_json::from_str(&raw).map_err(to_py_value_error))
             .transpose()?;
 
-        let value = self.inner
+        let value = self
+            .inner
             .request_json_with_query(parsed_method, path, &borrowed_query, body)
             .map_err(to_py_runtime_error)?;
 
         Ok(value.to_string())
     }
 
+    /// Call an endpoint by OpenAPI `operation_id`.
+    ///
+    /// Args:
+    ///     operation_id: Operation identifier from `Client.operations()`.
+    ///     path_params_json: Optional JSON object (string) for path parameters.
+    ///     query_json: Optional JSON object (string) for query parameters.
+    ///     body_json: Optional JSON value (string) for request body.
+    ///
+    /// Returns:
+    ///     A JSON string containing the parsed response payload.
     #[pyo3(signature = (operation_id, path_params_json=None, query_json=None, body_json=None))]
     fn call_operation(
         &self,
@@ -103,7 +144,8 @@ impl PyClient {
             .map(|raw| serde_json::from_str(&raw).map_err(to_py_value_error))
             .transpose()?;
 
-        let value = self.inner
+        let value = self
+            .inner
             .call_operation(operation_id, &borrowed_path, &borrowed_query, body)
             .map_err(to_py_runtime_error)?;
 
@@ -113,6 +155,11 @@ impl PyClient {
 
 #[pymethods]
 impl PyAsyncClient {
+    /// Create a new asynchronous client.
+    ///
+    /// Args:
+    ///     base_url: Base API URL. If omitted, uses the default server from the OpenAPI spec.
+    ///     access_token: Optional raw token sent as `Authorization: <token>`.
     #[new]
     #[pyo3(signature = (base_url=None, access_token=None))]
     fn new(base_url: Option<String>, access_token: Option<String>) -> PyResult<Self> {
@@ -129,15 +176,27 @@ impl PyAsyncClient {
         Ok(Self { inner: client })
     }
 
+    /// Return all generated OpenAPI operation definitions.
     #[staticmethod]
     fn operations() -> Vec<PyOperationDefinition> {
         operations_for_python()
     }
 
+    /// Perform an asynchronous `GET` request against a raw API path.
     fn get<'py>(&self, py: Python<'py>, path: String) -> PyResult<Bound<'py, PyAny>> {
         self.request(py, "GET", path, None, None)
     }
 
+    /// Perform an asynchronous raw HTTP request by method and path.
+    ///
+    /// Args:
+    ///     method: HTTP method (for example, `"GET"`).
+    ///     path: API path relative to the configured base URL.
+    ///     query_json: Optional JSON object (string) used as query parameters.
+    ///     body_json: Optional JSON value (string) used as request body.
+    ///
+    /// Returns:
+    ///     An awaitable resolving to a JSON string response payload.
     #[pyo3(signature = (method, path, query_json=None, body_json=None))]
     fn request<'py>(
         &self,
@@ -166,6 +225,16 @@ impl PyAsyncClient {
         })
     }
 
+    /// Call an endpoint asynchronously by OpenAPI `operation_id`.
+    ///
+    /// Args:
+    ///     operation_id: Operation identifier from `AsyncClient.operations()`.
+    ///     path_params_json: Optional JSON object (string) for path parameters.
+    ///     query_json: Optional JSON object (string) for query parameters.
+    ///     body_json: Optional JSON value (string) for request body.
+    ///
+    /// Returns:
+    ///     An awaitable resolving to a JSON string response payload.
     #[pyo3(signature = (operation_id, path_params_json=None, query_json=None, body_json=None))]
     fn call_operation<'py>(
         &self,
@@ -198,6 +267,7 @@ impl PyAsyncClient {
     }
 }
 
+/// Python module entrypoint for the `iri_client` extension.
 #[pymodule]
 fn iri_client(_py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyOperationDefinition>()?;

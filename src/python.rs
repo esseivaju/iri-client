@@ -8,12 +8,12 @@ use serde_json::Value;
 
 use crate::{BlockingIriClient, IriClient};
 
-/// Metadata for one generated OpenAPI operation.
+/// Metadata for one generated `OpenAPI` operation.
 ///
 /// Returned by `Client.operations()` and `AsyncClient.operations()`.
 #[pyclass(name = "OperationDefinition", get_all)]
 pub struct PyOperationDefinition {
-    /// Stable OpenAPI operation identifier (for example, `"getFacility"`).
+    /// Stable `OpenAPI` operation identifier (for example, `"getFacility"`).
     pub operation_id: String,
     /// Uppercase HTTP method (for example, `"GET"` or `"POST"`).
     pub method: String,
@@ -46,8 +46,8 @@ impl PyClient {
     /// Create a new synchronous client.
     ///
     /// Args:
-    ///     base_url: Base API URL. If omitted, uses the default server from the OpenAPI spec.
-    ///     access_token: Optional raw token sent as `Authorization: <token>`.
+    ///     `base_url`: Base API URL. If omitted, uses the default server from the `OpenAPI` spec.
+    ///     `access_token`: Optional raw token sent as `Authorization: <token>`.
     #[new]
     #[pyo3(signature = (base_url=None, access_token=None))]
     fn new(base_url: Option<String>, access_token: Option<String>) -> PyResult<Self> {
@@ -64,7 +64,7 @@ impl PyClient {
         Ok(Self { inner: client })
     }
 
-    /// Return all generated OpenAPI operation definitions.
+    /// Return all generated `OpenAPI` operation definitions.
     #[staticmethod]
     fn operations() -> Vec<PyOperationDefinition> {
         operations_for_python()
@@ -80,8 +80,8 @@ impl PyClient {
     /// Args:
     ///     method: HTTP method (for example, `"GET"`).
     ///     path: API path relative to the configured base URL.
-    ///     query_json: Optional JSON object (string) used as query parameters.
-    ///     body_json: Optional JSON value (string) used as request body.
+    ///     `query_json`: Optional JSON object (string) used as query parameters.
+    ///     `body_json`: Optional JSON value (string) used as request body.
     ///
     /// Returns:
     ///     A JSON string containing the parsed response payload.
@@ -112,13 +112,13 @@ impl PyClient {
         Ok(value.to_string())
     }
 
-    /// Call an endpoint by OpenAPI `operation_id`.
+    /// Call an endpoint by `OpenAPI` `operation_id`.
     ///
     /// Args:
-    ///     operation_id: Operation identifier from `Client.operations()`.
-    ///     path_params_json: Optional JSON object (string) for path parameters.
-    ///     query_json: Optional JSON object (string) for query parameters.
-    ///     body_json: Optional JSON value (string) for request body.
+    ///     `operation_id`: Operation identifier from `Client.operations()`.
+    ///     `path_params_json`: Optional JSON object (string) for path parameters.
+    ///     `query_json`: Optional JSON object (string) for query parameters.
+    ///     `body_json`: Optional JSON value (string) for request body.
     ///
     /// Returns:
     ///     A JSON string containing the parsed response payload.
@@ -158,8 +158,8 @@ impl PyAsyncClient {
     /// Create a new asynchronous client.
     ///
     /// Args:
-    ///     base_url: Base API URL. If omitted, uses the default server from the OpenAPI spec.
-    ///     access_token: Optional raw token sent as `Authorization: <token>`.
+    ///     `base_url`: Base API URL. If omitted, uses the default server from the `OpenAPI` spec.
+    ///     `access_token`: Optional raw token sent as `Authorization: <token>`.
     #[new]
     #[pyo3(signature = (base_url=None, access_token=None))]
     fn new(base_url: Option<String>, access_token: Option<String>) -> PyResult<Self> {
@@ -176,7 +176,7 @@ impl PyAsyncClient {
         Ok(Self { inner: client })
     }
 
-    /// Return all generated OpenAPI operation definitions.
+    /// Return all generated `OpenAPI` operation definitions.
     #[staticmethod]
     fn operations() -> Vec<PyOperationDefinition> {
         operations_for_python()
@@ -192,8 +192,8 @@ impl PyAsyncClient {
     /// Args:
     ///     method: HTTP method (for example, `"GET"`).
     ///     path: API path relative to the configured base URL.
-    ///     query_json: Optional JSON object (string) used as query parameters.
-    ///     body_json: Optional JSON value (string) used as request body.
+    ///     `query_json`: Optional JSON object (string) used as query parameters.
+    ///     `body_json`: Optional JSON value (string) used as request body.
     ///
     /// Returns:
     ///     An awaitable resolving to a JSON string response payload.
@@ -225,13 +225,13 @@ impl PyAsyncClient {
         })
     }
 
-    /// Call an endpoint asynchronously by OpenAPI `operation_id`.
+    /// Call an endpoint asynchronously by `OpenAPI` `operation_id`.
     ///
     /// Args:
-    ///     operation_id: Operation identifier from `AsyncClient.operations()`.
-    ///     path_params_json: Optional JSON object (string) for path parameters.
-    ///     query_json: Optional JSON object (string) for query parameters.
-    ///     body_json: Optional JSON value (string) for request body.
+    ///     `operation_id`: Operation identifier from `AsyncClient.operations()`.
+    ///     `path_params_json`: Optional JSON object (string) for path parameters.
+    ///     `query_json`: Optional JSON object (string) for query parameters.
+    ///     `body_json`: Optional JSON value (string) for request body.
     ///
     /// Returns:
     ///     An awaitable resolving to a JSON string response payload.

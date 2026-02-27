@@ -1,6 +1,6 @@
 [package]
 name = "iri-client"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Julien Esseiva <jesseiva@lbl.gov>"]
 edition = "2024"
 build = "build.rs"

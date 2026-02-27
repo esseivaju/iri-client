@@ -268,7 +268,7 @@ impl PyAsyncClient {
 }
 
 /// Python module entrypoint for the `iri_client` extension.
-#[pymodule]
+#[pymodule(name = "_iri_client")]
 fn iri_client(_py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyOperationDefinition>()?;
     module.add_class::<PyClient>()?;

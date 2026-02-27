@@ -26,3 +26,11 @@ features = ["python"]
 module-name = "iri_client._iri_client"
 bindings = "pyo3"
 python-source = "python"
+
+[tool.uv.sources]
+iri-client = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "iri-client",
+]

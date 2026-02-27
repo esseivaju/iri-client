@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use std::sync::Mutex;
 
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -19,7 +18,7 @@ pub struct PyOperationDefinition {
 
 #[pyclass(name = "Client")]
 pub struct PyClient {
-    inner: Mutex<BlockingIriClient>,
+    inner: BlockingIriClient,
 }
 
 #[pyclass(name = "AsyncClient")]
@@ -43,7 +42,7 @@ impl PyClient {
         };
 
         Ok(Self {
-            inner: Mutex::new(client),
+            inner: client,
         })
     }
 
@@ -75,11 +74,7 @@ impl PyClient {
             .map(|raw| serde_json::from_str(&raw).map_err(to_py_value_error))
             .transpose()?;
 
-        let client = self
-            .inner
-            .lock()
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        let value = client
+        let value = self.inner
             .request_json_with_query(parsed_method, path, &borrowed_query, body)
             .map_err(to_py_runtime_error)?;
 
@@ -108,11 +103,7 @@ impl PyClient {
             .map(|raw| serde_json::from_str(&raw).map_err(to_py_value_error))
             .transpose()?;
 
-        let client = self
-            .inner
-            .lock()
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        let value = client
+        let value = self.inner
             .call_operation(operation_id, &borrowed_path, &borrowed_query, body)
             .map_err(to_py_runtime_error)?;
 

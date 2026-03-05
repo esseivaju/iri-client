@@ -20,39 +20,41 @@ import time
 
 from iri_client import Client
 
-JOB_DIR='/path/to/iri-workdir'
-EXEC=f"{JOB_DIR}/dummy_job.sh"
-PROJECT='<mXXXX>'
+JOB_DIR='/global/cfs/cdirs/m2845/amsc-d3'
+EXEC=f"{JOB_DIR}/triton-models/start-tritonserver.sh"
+PROJECT='m2845'
+
+DURATION_M = 30
+DURATION_S = DURATION_M * 60
 
 # directory, stdout_path, and stderr_path are not working and defaulting to home directory
 
 TERMINAL_STATES = {"completed", "failed", "canceled"}
 
 JOB_SPEC: dict[str, object] = {
-    "executable": f"{EXEC}",
-    "arguments": [],
+    "executable": f"bash",
+    "arguments": [EXEC, "-d", "/global/cfs/cdirs/m2845/amsc-d3/workdir"],
     "directory": f"{JOB_DIR}",
-    "name": "my-job",
+    "name": "triton-inference-server",
     "inherit_environment": True,
     "environment": {},
     "stdout_path": f"{JOB_DIR}/output.txt",
     "stderr_path": f"{JOB_DIR}/error.txt",
     "resources": {
         "node_count": 1,
-        "process_count": 32,
-        "processes_per_node": 32,
-        "cpu_cores_per_process": 2,
-        "gpu_cores_per_process": 1,
+        "process_count": 1,
+        "processes_per_node": 1,
+        "cpu_cores_per_process": 64,
+        "gpu_cores_per_process": 4,
         "exclusive_node_use": True,
     },
     "attributes": {
-        "duration": 30,
+        "duration": DURATION_S,
         "queue_name": "debug",
         "account": f"{PROJECT}",
         "custom_attributes": {},
     },
-    "post_launch": "echo done",
-    "launcher": "srun",
+    "launcher": "single",
 }
 
 
